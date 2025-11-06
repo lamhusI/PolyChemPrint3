@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 from tools.ultimusExtruder import *
 from axes.lulzbotTaz6_BP import *
+from axes.Ender import *
 
 class RpcDevicesAdaptor(object):
 
@@ -22,14 +23,20 @@ class RpcDevicesAdaptor(object):
 
         self.channel.queue_declare(queue='rpc_queue')
         self.channel.exchange_declare(exchange='device_commands', exchange_type='direct')
+
+        self.deviceIDs = {'ender3': '0x0'}
+        # Connect to your printer over USB serial
+        self.serial_port = serial.Serial('/dev/tty.usbserial-1110', baudrate=115200, timeout=2)
+        self.devices = {'ender3': {'instance': self.serial_port, 'type': 'printer'}}
+
         
-        self.deviceIDs = {'ultimusExtruder': '0x0', 'lulzbot': '0x1'}
-        extruder = ultimusExtruder()
-        lulzbot = lulzbotTaz6_BP()
-        self.devices = {
-            'ultimusExtruder': {'instance': extruder, 'type': 'tool'}, 
-            'lulzbot': {'instance': lulzbot, 'type': 'axes'},
-            }
+        #self.deviceIDs = {'ultimusExtruder': '0x0', 'lulzbot': '0x1'}
+        #extruder = ultimusExtruder()
+        #lulzbot = lulzbotTaz6_BP()
+        #self.devices = {
+         #   'ultimusExtruder': {'instance': extruder, 'type': 'tool'}, 
+          #  'lulzbot': {'instance': lulzbot, 'type': 'axes'},
+           # }
         
         # self.deviceIDs = {'device_0':'0x0', 'device_1':'0x1', 'device_2':'0x2', 'device_3':'0x3', 'device_4':'0x4', 
         #     'device_5':'0x5', 'device_6':'0x6', 'device_7':'0x7', 'device_8':'0x8', 'device_9':'0x9'}
@@ -46,11 +53,23 @@ class RpcDevicesAdaptor(object):
     
     def get_queue_names(self):
         return self.queue_names
-    
+    """""
     def generate_status(self, deviceTitle):
         device = self.devices[deviceTitle]
         isConnected = device['instance'].activate()
         return isConnected
+    """
+    def generate_status(self, deviceTitle):
+        device = self.devices[deviceTitle]
+        instance = device['instance']
+        # If it's a serial device (Ender), just check if the port is open
+        if hasattr(instance, "is_open"):
+            return instance.is_open
+        elif hasattr(instance, "activate"):
+            return instance.activate()
+        else:
+            return True  
+
 
     def generate_command_status(self):
         return random.choice(['Executing', 'Finished', 'Queued'])
